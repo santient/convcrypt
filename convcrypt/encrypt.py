@@ -24,14 +24,13 @@ def next_even_cube(n):
 
 def init_model_3d(shape):
     input_layer = keras.layers.Input(shape)
-    output_layer = keras.layers.Conv3D(8, (shape[0] / 2 + 1, shape[1] / 2 + 1, shape[2] / 2 + 1),
-                                       activation='sigmoid')
+    output_layer = keras.layers.Conv3D(8, (shape[0] / 2 + 1, shape[1] / 2 + 1, shape[2] / 2 + 1), activation='sigmoid')
     model = keras.models.Model(input_layer, output_layer)
     model.compile(optimizer='adam', loss='binary_crossentropy')
     return model
 
 
-def pad_cube(bits):
+def cubify(bits):
     pad_size = next_even_cube(len(bits)) - len(bits)
     pad_array = numpy.zeros((pad_size,))
     return numpy.concatenate([bits, pad_array])
@@ -54,6 +53,6 @@ def fit(model, x, y):
 
 
 if __name__ == '__main__':
-    bit_data = read_bits(file_path)
-    padded = pad_cube(bit_data)
-
+    data_bits = read_bits(file_path)
+    data_cube = cubify(bit_data)
+    
