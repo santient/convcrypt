@@ -5,11 +5,10 @@ import numpy
 import os
 import shutil
 import tarfile
-import tensorflow
 import tqdm
 
 
-def read_bits(file_path):
+def load_data(file_path):
     bits = []
     with open(file_path, 'rb') as f:
         bs = (ord(chr(b)) for b in f.read())
@@ -33,7 +32,7 @@ def num_blocks_3d(data, block_size):
     return data.shape[1] // block_size ** 3
 
 
-def generate_key_cube(block_size): 
+def generate_key_cube(block_size):
     return numpy.random.randint(2, size=(1, block_size, block_size, block_size, 1))
 
 
@@ -65,33 +64,42 @@ def fit_models_3d(key, data):
 
 def test_models(key, data, models):
     for i, model in enumerate(models):
-        result = int(numpy.round(model.predict(key, batch_size=1)))
+        result = numpy.round(model.predict(key, batch_size=1)).astype(numpy.uint8)
         numpy.testing.assert_equal(result, data[i, :, :])
 
 
-def compress_tar(source_dir, output_filename):
+def compress(source_dir, output_filename):
     with tarfile.open(output_filename, 'w:gz') as tar:
         tar.add(source_dir, arcname=os.path.basename(source_dir))
 
 
-def save_data(file_path, models, block_size, pad_size, dimensions):
+def save_encrypted(file_path, models, block_size, pad_size, dimensions):
     temp_dir = file_path + '#'
     os.makedirs(temp_dir)
     meta_file = os.path.join(temp_dir, 'meta')
     with open(meta_file, 'w') as meta:
-        meta.write('block_size={}\n'.format(block_size))
-        meta.write('pad_size={}\n'.format(pad_size))
-        meta.write('dimensions={}\n'.format(dimensions))
+        meta.write(str(block_size) + '\n')
+        meta.write(str(pad_size) + '\n')
+        meta.write(str(dimensions) + '\n')
     for i, model in enumerate(models):
         temp_file = os.path.join(temp_dir, 'block{}'.format(i))
         model.save_weights(temp_file)
-    compress_tar(temp_dir, file_path)
+    compress(temp_dir, file_path)
     shutil.rmtree(temp_dir)
 
 
+def to_bytes(bits):
+    bs = []
+    for i in range(len(bits) // 8):
+        bs.append(int(''.join(bits[i*8:(i+1)*8].astype(str)), 2))
+    return bytes(bs)
+
+
 def save_key(file_path, key):
-    numpy.save(file_path, key)
-    os.rename(file_path + '.npy', file_path)
+    bits = key.flatten()
+    key_data = to_bytes(bits)
+    with open(file_path, 'wb') as f:
+        f.write(key_data)
 
 
 @click.command()
@@ -101,16 +109,25 @@ def save_key(file_path, key):
 @click.option('--dimensions', default=3, help="Dimensions of convolutional layer, between 1 and 3.")
 @click.option('--block_size', default=32, help="Size of all dimensions for each data block.")
 def encrypt(input_path, output_path, key_path, dimensions, block_size):
+    """Encrypts the specified file using the ConvCrypt algorithm."""
+    if input_path is None:
+        raise ValueError("Please specify file input path.")
+    if output_path is None:
+        raise ValueError("Please specify file output path.")
+    if key_path is None:
+        raise ValueError("Please specify key output path.")
     if dimensions not in [1, 2, 3]:
         raise ValueError("Only 1, 2, or 3 dimensions are supported.")
-    data_bits = read_bits(input_path)
+    if block_size not in [8, 16, 32]:
+        raise ValueError("Block size must be either 8, 16, or 32.")
+    data_bits = load_data(input_path)
     data, pad_size = random_pad_3d(data_bits, block_size)
     blocks = num_blocks_3d(data, block_size)
     key = generate_key_cube(block_size)
-    dataset = split_data(data, blocks)
-    models = fit_models_3d(key, dataset)
-    test_models(key, dataset, models)
-    save_data(output_path, models, block_size, pad_size, dimensions)
+    data_blocks = split_data(data, blocks)
+    models = fit_models_3d(key, data_blocks)
+    test_models(key, data_blocks, models)
+    save_encrypted(output_path, models, block_size, pad_size, dimensions)
     save_key(key_path, key)
     print("Encryption complete.")
 
