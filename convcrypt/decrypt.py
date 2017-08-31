@@ -21,7 +21,7 @@ def load_data(file_path):
     models = []
     temp_dir = file_path + '#'
     with tarfile.open(file_path, 'r:gz') as tar:
-        tar.extractall(path=temp_dir)
+        tar.extractall(path=os.path.dirname(temp_dir))
         with open(os.path.join(temp_dir, 'meta'), 'r') as meta:
             metadata = meta.read().split('\n')
             blocks = int(metadata[0])
@@ -52,15 +52,16 @@ def cubify(bits):
     return bits.reshape(1, size, size, size, 1)
 
 
-def decrypt_data(models, key):
+def decrypt_data(models, key, pad_size):
     data_blocks = []
     for model in tqdm.tqdm(models):
         data_blocks.append(model.predict(key, batch_size=1))
-    return numpy.round(numpy.array(data_blocks)).astype(numpy.uint8).flatten()
-
-
-def unpad(data, pad_size):
-    return data[:-pad_size]
+    data = numpy.round(numpy.array(data_blocks)).astype(numpy.uint8).flatten()
+    data = data[:-pad_size]
+    num_bytes = len(data) // 8
+    data = data.reshape(num_bytes, 8)
+    data = numpy.apply_along_axis(lambda x: int(''.join(x.astype(str)), 2), 1, data)
+    return bytes(data.tolist())
 
 
 def save_data(file_path, data):
@@ -69,17 +70,22 @@ def save_data(file_path, data):
 
 
 @click.command()
-@click.option('--input_path', help="Name of file to decrypt.")
-@click.option('--output_path', help="Name of decrypted file to write.")
-@click.option('--key_path', help="Name of key file to use.")
-def decrypt(input_path, output_path, key_path):
+@click.option('--input_file', help="Name of file to decrypt.")
+@click.option('--output_file', help="Name of decrypted file to write.")
+@click.option('--key_file', help="Name of key file to use.")
+def decrypt(input_file, output_file, key_file):
     """Decrypts the specified file using the ConvCrypt algorithm."""
-    models, blocks, block_size, pad_size, dimensions = load_data(input_path)
-    key_bits = load_key(key_path)
+    if input_file is None:
+        raise ValueError("Please specify file input path.")
+    if output_file is None:
+        raise ValueError("Please specify file output path.")
+    if key_file is None:
+        raise ValueError("Please specify key input path.")
+    models, blocks, block_size, pad_size, dimensions = load_data(input_file)
+    key_bits = load_key(key_file)
     key = cubify(key_bits)
-    data_blocks = decrypt_data(models, key)
-    data = unpad(data_blocks, pad_size)
-    save_data(output_path, data)
+    data = decrypt_data(models, key, pad_size)
+    save_data(output_file, data)
     print("Decryption complete.")
 
 

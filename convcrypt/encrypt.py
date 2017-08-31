@@ -104,32 +104,32 @@ def save_key(file_path, key):
 
 
 @click.command()
-@click.option('--input_path', help="Name of file to encrypt.")
-@click.option('--output_path', help="Name of encrypted file to write.")
-@click.option('--key_path', help="Name of key file to write.")
+@click.option('--input_file', help="Name of file to encrypt.")
+@click.option('--output_file', help="Name of encrypted file to write.")
+@click.option('--key_file', help="Name of key file to write.")
 @click.option('--dimensions', default=3, help="Dimensions of convolutional layer, between 1 and 3.")
 @click.option('--block_size', default=32, help="Size of all dimensions for each data block.")
-def encrypt(input_path, output_path, key_path, dimensions, block_size):
+def encrypt(input_file, output_file, key_file, dimensions, block_size):
     """Encrypts the specified file using the ConvCrypt algorithm."""
-    if input_path is None:
+    if input_file is None:
         raise ValueError("Please specify file input path.")
-    if output_path is None:
+    if output_file is None:
         raise ValueError("Please specify file output path.")
-    if key_path is None:
+    if key_file is None:
         raise ValueError("Please specify key output path.")
     if dimensions not in [1, 2, 3]:
         raise ValueError("Only 1, 2, or 3 dimensions are supported.")
     if block_size not in [8, 16, 32]:
         raise ValueError("Block size must be either 8, 16, or 32.")
-    data_bits = load_data(input_path)
+    data_bits = load_data(input_file)
     data, pad_size = random_pad_3d(data_bits, block_size)
     blocks = num_blocks_3d(data, block_size)
     key = generate_key_cube(block_size)
     data_blocks = split_data(data, blocks)
     models = fit_models_3d(key, data_blocks)
     test_models(key, data_blocks, models)
-    save_encrypted(output_path, models, blocks, block_size, pad_size, dimensions)
-    save_key(key_path, key)
+    save_encrypted(output_file, models, blocks, block_size, pad_size, dimensions)
+    save_key(key_file, key)
     print("Encryption complete.")
 
 
