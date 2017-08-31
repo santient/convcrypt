@@ -1,6 +1,5 @@
 import click
 import keras
-import math
 import numpy
 import os
 import shutil
@@ -18,42 +17,55 @@ def init_model_3d(input_shape):
     return model
 
 
-def load_models(file_path):
+def load_data(file_path):
     models = []
+    temp_dir = file_path + '#'
     with tarfile.open(file_path, 'r:gz') as tar:
-        for member in tar.getmembers():
-            f = tar.extractfile(member)
-            if f.name == 'meta':
-                metadata = f.read().split('\n')
-                block_size = metadata[0]
-                pad_size = metadata[1]
-                dimensions = metadata[2]
-            if 'block' in f.name:
-                model = init_model_3d((block_size, block_size, block_size, 1))
-                model.load_weights(f.name)
-                models.append(model)
-    return models, block_size, pad_size, dimensions
-# TODO: actually extract files so that weights can be loaded
+        tar.extractall(path=temp_dir)
+        with open(os.path.join(temp_dir, 'meta'), 'r') as meta:
+            metadata = meta.read().split('\n')
+            blocks = int(metadata[0])
+            block_size = int(metadata[1])
+            pad_size = int(metadata[2])
+            dimensions = int(metadata[3])
+        for i in range(blocks):
+            path = os.path.join(temp_dir, 'block{}'.format(i))
+            model = init_model_3d((block_size, block_size, block_size, 1))
+            model.load_weights(path)
+            models.append(model)
+    shutil.rmtree(temp_dir)
+    return models, blocks, block_size, pad_size, dimensions
 
 
 def load_key(file_path):
-    pass
+    bits = []
+    with open(file_path, 'rb') as f:
+        bs = (ord(chr(b)) for b in f.read())
+        for b in bs:
+            for i in reversed(range(8)):
+                bits.append((b >> i) & 1)
+    return numpy.array(bits)
 
 
 def cubify(bits):
-    pass
+    size = int(numpy.round(len(bits) ** (1 / 3)))
+    return bits.reshape(1, size, size, size, 1)
 
 
 def decrypt_data(models, key):
-    pass
+    data_blocks = []
+    for model in tqdm.tqdm(models):
+        data_blocks.append(model.predict(key, batch_size=1))
+    return numpy.round(numpy.array(data_blocks)).astype(numpy.uint8).flatten()
 
 
-def reconstruct(data, pad_size):
-    pass
+def unpad(data, pad_size):
+    return data[:-pad_size]
 
 
 def save_data(file_path, data):
-    pass
+    with open(file_path, 'wb') as f:
+        f.write(data)
 
 
 @click.command()
@@ -62,11 +74,11 @@ def save_data(file_path, data):
 @click.option('--key_path', help="Name of key file to use.")
 def decrypt(input_path, output_path, key_path):
     """Decrypts the specified file using the ConvCrypt algorithm."""
-    models, block_size, pad_size, dimensions = load_models(input_path)
+    models, blocks, block_size, pad_size, dimensions = load_data(input_path)
     key_bits = load_key(key_path)
     key = cubify(key_bits)
     data_blocks = decrypt_data(models, key)
-    data = reconstruct(data_blocks, pad_size)
+    data = unpad(data_blocks, pad_size)
     save_data(output_path, data)
     print("Decryption complete.")
 

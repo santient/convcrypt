@@ -73,11 +73,12 @@ def compress(source_dir, output_filename):
         tar.add(source_dir, arcname=os.path.basename(source_dir))
 
 
-def save_encrypted(file_path, models, block_size, pad_size, dimensions):
+def save_encrypted(file_path, models, blocks, block_size, pad_size, dimensions):
     temp_dir = file_path + '#'
     os.makedirs(temp_dir)
     meta_file = os.path.join(temp_dir, 'meta')
     with open(meta_file, 'w') as meta:
+        meta.write(str(blocks) + '\n')
         meta.write(str(block_size) + '\n')
         meta.write(str(pad_size) + '\n')
         meta.write(str(dimensions) + '\n')
@@ -127,7 +128,7 @@ def encrypt(input_path, output_path, key_path, dimensions, block_size):
     data_blocks = split_data(data, blocks)
     models = fit_models_3d(key, data_blocks)
     test_models(key, data_blocks, models)
-    save_encrypted(output_path, models, block_size, pad_size, dimensions)
+    save_encrypted(output_path, models, blocks, block_size, pad_size, dimensions)
     save_key(key_path, key)
     print("Encryption complete.")
 
