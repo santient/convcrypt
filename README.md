@@ -7,7 +7,7 @@ python3 [encrypt/decrypt].py [--parameters]
 
 Encryption parameters:
 - --input-file: Name of file to encrypt.
-- -- output-file: Name of encrypted file to write.
+- --output-file: Name of encrypted file to write.
 - --key-file: Name of key file to write.
 - --dimensions: Dimensions of convolutional layer (only 3 are currently supported).
 - --block-size: Size of all dimensions for each data block (only 8, 16, or 32 are supported).
