@@ -22,7 +22,7 @@ The first step in the algorithm is to separate the data into blocks of the speci
 
 ![2D Convolution](/images/3D_Convolution_Animation.gif?raw=true)
 
-Visualization of a 2D Convolution. Source: Wikimedia Commons
+Visualization of a 2D Convolution. (Source: Wikimedia Commons)
 
 ## Drawbacks
 Due to the nature of this algorithm, similar keys tend to encode for the same data. Also, this algorithm takes a very long time for large files because there are more data blocks to reconstruct, and hence more networks to train. The resulting encrypted file is always bigger than the input file.
