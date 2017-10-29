@@ -25,7 +25,7 @@ The first step in the algorithm is to separate the data into blocks of the speci
 Visualization of a 2D Convolution. (Source: Wikimedia Commons)
 
 ## Drawbacks
-Due to the nature of this algorithm, similar keys tend to encode for the same data. Also, this algorithm takes a very long time for large files because there are more data blocks to reconstruct, and hence more networks to train. The resulting encrypted file is always bigger than the input file.
+Due to the nature of this algorithm, keys that are very similar to each other tend to encode for the same data. Also, this algorithm takes a very long time for large files because there are more data blocks to reconstruct, and hence more networks to train. The resulting encrypted file is always bigger than the input file.
 
 ## Future Directions
 In the future, I plan to convolve byte values rather than individual bits so that the encrypted data is smaller and takes less time to create. It might be possible to create a training algorithm for the neural networks optimized for this encryption algorithm, or to abandon neural networks entirely for this purpose. I also plan to test the security of this algorithm and to add the option to use 1D or 2D convolutions.
