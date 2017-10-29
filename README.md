@@ -3,7 +3,7 @@
 ConvCrypt is an experimental encryption algorithm that uses n-dimensional convolutional neural networks. It currently supports only 3-dimensional convolutions. Please note that this encryption algorithm is a proof-of-concept for experimental purposes only. It is by no means practical, and should not be used to encrypt important files.
 
 ## Usage
-python3 [encrypt/decrypt].py [--parameters]
+`python3 [encrypt/decrypt].py [--parameters]`
 
 Encryption parameters:
 - --input-file: Name of file to encrypt.
